@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <video id="v1" src="excercise-1.mp4" style="width:200px"></video>
+  <video id="v2" src="" style="width:200px"></video>
+  <video id="v3" src="" style="width:200px"></video>
+
+  <button onclick="start();">시작</button>
+  <button onclick="startRecording();">녹화</button>
+  <script>
+    function start() {
+      document.getElementById('v1').play();  
+    }
+    document.getElementById('v1').onplay = function() {
+      document.getElementById('v2').srcObject = document.getElementById('v1').captureStream();
+      document.getElementById('v2').play();
+    }
+
+
+    var possibleTypes = [
+      'video/webm;codecs=vp9,opus',
+      'video/webm;codecs=vp8,opus',
+      'video/webm;codecs=h264,opus',
+      'video/mp4;codecs=h264,aac',
+    ];
+    possibleTypes = possibleTypes.filter(mimeType => MediaRecorder.isTypeSupported(mimeType));
+    console.log('possibleTypes', possibleTypes); // 3
+    var mediaRecorder;
+    var recordedBlobs;
+    function startRecording() {
+      recordedBlobs = [];
+      const mimeType = possibleTypes[0];
+      const options = {mimeType};
+
+      try {
+        var stream = document.getElementById('v1').captureStream();
+        mediaRecorder = new MediaRecorder(stream, options);
+      } catch (e) {
+        console.error('Exception while creating MediaRecorder:', e);
+        return;
+      }
+      mediaRecorder.onstop = (event) => {
+        console.log('Recorder stopped: ', event);
+        console.log('Recorded Blobs: ', recordedBlobs);
+      };
+      mediaRecorder.ondataavailable = handleDataAvailable;
+      mediaRecorder.start();
+      console.log('MediaRecorder started', mediaRecorder);
+
+      setTimeout(() => {
+        mediaRecorder.stop();
+        console.log('stop');
+
+        setTimeout(() => {
+          console.log('recordedBlobs', recordedBlobs);
+          const superBuffer = new Blob(recordedBlobs, {type: 'video/webm'});
+          document.getElementById('v3').srcObject = null;
+          document.getElementById('v3').src = window.URL.createObjectURL(superBuffer);
+          document.getElementById('v3').play();
+        }, 1000);
+      }, 10000);
+    }
+    function handleDataAvailable(event) {
+      console.log('handleDataAvailable', event);
+      if (event.data && event.data.size > 0) {
+        recordedBlobs.push(event.data);
+      }
+    }
+  </script>
+</body>
+</html>
